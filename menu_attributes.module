@@ -28,7 +28,7 @@ function menu_attributes_menu_link_alter(&$item, $menu) {
   if (isset($item['options']['attributes']) && is_array($item['options']['attributes'])) {
     // Filter out blank attributes.
     foreach ($item['options']['attributes'] as $key => $value) {
-      if ((is_array($value) && empty($value)) || is_string($value) && !drupal_strlen($value)) {
+      if ((is_array($value) && empty($value)) || is_string($value) && !backdrop_strlen($value)) {
         unset($item['options']['attributes'][$key]);
       }
     }
@@ -56,7 +56,6 @@ function menu_attributes_menu_attribute_info() {
   $info['id'] = array(
     'label' => t('ID'),
     'description' => t('Specifies a unique ID for the link.'),
-    'item_description' => t('Specifies a unique ID to be added to the item.'),
     'scope' => array(MENU_ATTRIBUTES_LINK, MENU_ATTRIBUTES_ITEM),
   );
   $info['name'] = array(
@@ -71,13 +70,11 @@ function menu_attributes_menu_attribute_info() {
   $info['class'] = array(
     'label' => t('Classes'),
     'description' => t('Enter additional classes to be added to the link.'),
-    'item_description' => t('Enter additional CSS class names to be added to the item.'),
     'scope' => array(MENU_ATTRIBUTES_LINK, MENU_ATTRIBUTES_ITEM),
   );
   $info['style'] = array(
     'label' => t('Style'),
     'description' => t('Enter additional styles to be applied to the link.'),
-    'item_description' => t('Enter additional styles attribute to be applied to the item.'),
     'scope' => array(MENU_ATTRIBUTES_LINK, MENU_ATTRIBUTES_ITEM),
   );
   $info['target'] = array(
@@ -108,6 +105,17 @@ function menu_attributes_menu_attribute_info() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function menu_attributes_config_info() {
+  $prefixes['menu_attributes.settings'] = array(
+    'label' => t('Menu attribute settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
  * Fetch an array of menu attributes.
  */
 function menu_attributes_get_menu_attribute_info() {
@@ -117,17 +125,17 @@ function menu_attributes_get_menu_attribute_info() {
   foreach ($attributes as $attribute => &$info) {
     $info += array(
       'form' => array(),
-      'enabled' => variable_get("menu_attributes_{$attribute}_enable", 1),
+      'enabled' => config_get('menu_attributes.settings', "{$attribute}_enable"),
       'default' => '',
     );
     $info['form'] += array(
       '#type' => 'textfield',
       '#title' => $info['label'],
       '#description' => isset($info['description']) ? $info['description'] : '',
-      '#default_value' => variable_get("menu_attributes_{$attribute}_default", $info['default']),
+      '#default_value' => config_get('menu_attributes.settings', "{$attribute}_default"),
     );
   }
-  drupal_alter('menu_attribute_info', $attributes);
+  backdrop_alter('menu_attribute_info', $attributes);
 
   return $attributes;
 }
@@ -215,12 +223,6 @@ function _menu_attributes_form_alter(array &$form, array $item = array(), array 
         // If this is an existing link, use the raw default (usually empty).
         $info['form']['#default_value'] = $info['default'];
       }
-
-      // If the item description is set, override the form description.
-      if ($group == MENU_ATTRIBUTES_ITEM && isset($info['item_description'])) {
-        $info['form']['#description'] = $info['item_description'];
-      }
-
       $form['options'][$group][$attribute] = $info['form'] + array(
         '#access' => $info['enabled'],
       );
@@ -289,9 +291,9 @@ function _menu_attributes_form_submit($form, &$form_state) {
  *
  * Alters the menu settings form with our menu attribute settings.
  *
- * @see menu_configure_form()
+ * @see menu_edit_menu()
  */
-function menu_attributes_form_menu_configure_alter(&$form, $form_state) {
+function menu_attributes_form_menu_edit_menu_alter(&$form, $form_state) {
   if (!user_access('administer menu attributes')) {
     return;
   }
@@ -303,33 +305,44 @@ function menu_attributes_form_menu_configure_alter(&$form, $form_state) {
   $form['attributes_vertical_tabs'] = array(
     '#type' => 'vertical_tabs',
     '#attached' => array(
-      'js' => array(drupal_get_path('module', 'menu_attributes') . '/menu_attributes.js'),
+      'js' => array(backdrop_get_path('module', 'menu_attributes') . '/js/menu_attributes.js'),
     ),
   );
 
   $attributes = menu_attributes_get_menu_attribute_info();
   foreach ($attributes as $attribute => $info) {
+    $form['attributes']['#tree'] = TRUE;
+    $form['attributes']['#parents'] = array('menu_attributes');
     $form['attributes'][$attribute] = array(
       '#type' => 'fieldset',
       '#title' => $info['label'],
       '#group' => 'attributes_vertical_tabs',
       '#description' => $info['form']['#description'],
     );
-    $form['attributes'][$attribute]["menu_attributes_{$attribute}_enable"] = array(
+    $form['attributes'][$attribute]["{$attribute}_enable"] = array(
       '#type' => 'checkbox',
-      '#title' => t('Enable the @attribute attribute.', array('@attribute' => drupal_strtolower($info['label']))),
+      '#title' => t('Enable the @attribute attribute.', array('@attribute' => backdrop_strtolower($info['label']))),
       '#default_value' => $info['enabled'],
+      '#parents' => array('menu_attributes', "{$attribute}_enable"),
     );
-    $form['attributes'][$attribute]["menu_attributes_{$attribute}_default"] = array(
+    $form['attributes'][$attribute]["{$attribute}_default"] = array(
       '#title' => t('Default'),
       '#description' => '',
       '#states' => array(
         'invisible' => array(
-          'input[name="menu_attributes_' . $attribute . '_enable"]' => array('checked' => FALSE),
+          'input[name="menu_attributes[' . $attribute . '_enable]"]' => array('checked' => FALSE),
         ),
       ),
+      '#parents' => array('menu_attributes', "{$attribute}_default"),
     ) + $info['form'];
   }
+  $form['#submit'][] = 'menu_attributes_form_menu_edit_menu_submit';
+}
+
+function menu_attributes_form_menu_edit_menu_submit(&$form, &$form_state) {
+  $config = config('menu_attributes.settings');
+  $config->setData($form_state['values']['menu_attributes']);
+  $config->save();
 }
 
 /**

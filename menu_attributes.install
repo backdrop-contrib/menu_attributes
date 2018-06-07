@@ -25,15 +25,15 @@ function menu_attributes_uninstall() {
   drupal_load('module', 'menu_attributes');
   $attributes = menu_attributes_menu_attribute_info();
   foreach (array_keys($attributes) as $attribute) {
-    variable_del("menu_attributes_{$attribute}_enable");
-    variable_del("menu_attributes_{$attribute}_default");
+    config_clear("menu_attributes_{$attribute}_enable");
+    config_clear("menu_attributes_{$attribute}_default");
   }
 }
 
 /**
  * Update the module weight.
  */
-function menu_attributes_update_1() {
+function menu_attributes_update_1000() {
   db_update('system')
     ->fields(array(
       'weight' => 10,
@@ -46,7 +46,7 @@ function menu_attributes_update_1() {
 /**
  * Fix any menu links that had the class attribute saved as an string.
  */
-function menu_attributes_update_7000(&$sandbox) {
+function menu_attributes_update_1001(&$sandbox) {
   if (!isset($sandbox['progress'])) {
     $sandbox['progress'] = 0;
     $sandbox['current_mlid'] = 0;
@@ -88,7 +88,7 @@ function menu_attributes_update_7000(&$sandbox) {
  * Grant the 'administer menu attributes' permission to roles that currently
  * have the 'administer menu' permission.
  */
-function menu_attributes_update_7001() {
+function menu_attributes_update_1002() {
   $roles = user_roles(FALSE, 'administer menu');
   foreach ($roles as $rid => $role) {
     user_role_grant_permissions($rid, array('administer menu attributes'));
