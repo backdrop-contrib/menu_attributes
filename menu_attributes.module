@@ -10,6 +10,23 @@ define('MENU_ATTRIBUTES_LINK', 'attributes');
 define('MENU_ATTRIBUTES_ITEM', 'item_attributes');
 
 /**
+ * Implements hook_menu().
+ */
+function menu_attributes_menu() {
+  $items['admin/structure/menu/attributes'] = array(
+    'title' => 'Menu attributes',
+    'description' => 'Configure available menu attributes when menu links are created. Can be used to create title, class, rel, style, and other attributes on the links and surrounding list items.',
+    'access arguments' => array('administer menu attributes'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'menu_attributes.admin.inc',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('menu_attributes_settings_form'),
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_permission().
  */
 function menu_attributes_permission() {
@@ -190,6 +207,7 @@ function _menu_attributes_form_alter(array &$form, array $item = array(), array 
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#tree' => TRUE,
+    '#description' => t('Link attributes are added to the menu link anchor (<code>&lt;a&gt;</code>) tag when this menu item is displayed.'),
   );
 
   $form['options'][MENU_ATTRIBUTES_ITEM] = array(
@@ -198,6 +216,7 @@ function _menu_attributes_form_alter(array &$form, array $item = array(), array 
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#tree' => TRUE,
+    '#description' => t('Item attributes are added to the wrapping list item (<code>&lt;li&gt;</code>) tag when this menu item is displayed.'),
   );
 
   $attributes = menu_attributes_get_menu_attribute_info();
@@ -284,65 +303,6 @@ function _menu_attributes_form_submit($form, &$form_state) {
   elseif (isset($form_state['values']['options']['attributes']['title'])) {
     $form_state['values']['description'] = $form_state['values']['options']['attributes']['title'];
   }
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- *
- * Alters the menu settings form with our menu attribute settings.
- *
- * @see menu_edit_menu()
- */
-function menu_attributes_form_menu_edit_menu_alter(&$form, $form_state) {
-  if (!user_access('administer menu attributes')) {
-    return;
-  }
-
-  $form['attributes_title'] = array(
-    '#type' => 'item',
-    '#title' => t('Menu item attribute options'),
-  );
-  $form['attributes_vertical_tabs'] = array(
-    '#type' => 'vertical_tabs',
-    '#attached' => array(
-      'js' => array(backdrop_get_path('module', 'menu_attributes') . '/js/menu_attributes.js'),
-    ),
-  );
-
-  $attributes = menu_attributes_get_menu_attribute_info();
-  foreach ($attributes as $attribute => $info) {
-    $form['attributes']['#tree'] = TRUE;
-    $form['attributes']['#parents'] = array('menu_attributes');
-    $form['attributes'][$attribute] = array(
-      '#type' => 'fieldset',
-      '#title' => $info['label'],
-      '#group' => 'attributes_vertical_tabs',
-      '#description' => $info['form']['#description'],
-    );
-    $form['attributes'][$attribute]["{$attribute}_enable"] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Enable the @attribute attribute.', array('@attribute' => backdrop_strtolower($info['label']))),
-      '#default_value' => $info['enabled'],
-      '#parents' => array('menu_attributes', "{$attribute}_enable"),
-    );
-    $form['attributes'][$attribute]["{$attribute}_default"] = array(
-      '#title' => t('Default'),
-      '#description' => '',
-      '#states' => array(
-        'invisible' => array(
-          'input[name="menu_attributes[' . $attribute . '_enable]"]' => array('checked' => FALSE),
-        ),
-      ),
-      '#parents' => array('menu_attributes', "{$attribute}_default"),
-    ) + $info['form'];
-  }
-  $form['#submit'][] = 'menu_attributes_form_menu_edit_menu_submit';
-}
-
-function menu_attributes_form_menu_edit_menu_submit(&$form, &$form_state) {
-  $config = config('menu_attributes.settings');
-  $config->setData($form_state['values']['menu_attributes']);
-  $config->save();
 }
 
 /**

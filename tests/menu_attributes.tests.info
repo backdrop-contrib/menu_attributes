@@ -1,0 +1,11 @@
+[MenuAttributesTestCase]
+name = Menu attributes main tests
+description = Tests menu attributes functionality.
+group = Menu attributes
+file = menu_attributes.test
+
+[MenuAttributesNodeTestCase]
+name = Menu attributes settings for nodes
+description = Add, edit, and delete a node with menu link.
+group = Menu attributes
+file = menu_attributes.test

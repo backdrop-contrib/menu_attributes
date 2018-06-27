@@ -1,8 +1,7 @@
-type = module
 name = Menu attributes
 description = "Allows administrators to specify custom attributes for menu items."
+package = Menu
+type = module
 dependencies[] = menu
 backdrop = 1.x
-version = 1.x-1.0
-package = Menu
 configure = admin/structure/menu/settings
