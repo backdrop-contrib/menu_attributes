@@ -23,11 +23,8 @@ function menu_attributes_install() {
  */
 function menu_attributes_uninstall() {
   backdrop_load('module', 'menu_attributes');
-  $attributes = menu_attributes_menu_attribute_info();
-  foreach (array_keys($attributes) as $attribute) {
-    config_clear("menu_attributes_{$attribute}_enable");
-    config_clear("menu_attributes_{$attribute}_default");
-  }
+  $config = config('menu_attributes');
+  $config->delete();
 }
 
 /**
