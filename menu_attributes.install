@@ -22,7 +22,6 @@ function menu_attributes_install() {
  * Implements hook_uninstall().
  */
 function menu_attributes_uninstall() {
-  backdrop_load('module', 'menu_attributes');
   $config = config('menu_attributes');
   $config->delete();
 }
