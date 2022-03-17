@@ -64,7 +64,8 @@ directory for complete text.
 Current Maintainers
 -------------------
 
-- Nate Lampton (https://backdropcms.org/account/quicksketch)
+- [Nate Lampton](https://backdropcms.org/account/quicksketch)
+- [Greg Netsas](https://backdropcms.org/account/klonos)
 - Seeking additional maintainers.
 
 Credits
